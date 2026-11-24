@@ -1,0 +1,58 @@
+name: Build addon release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  create:
+
+jobs:
+  release:
+    if: github.event_name == 'push' || (github.ref_type == 'branch' && startsWith(github.ref_name, 'release/v'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_REF: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Build addon ZIP
+        shell: pwsh
+        run: |
+          $tag = $env:RELEASE_REF -creplace '^release/', ''
+          $manifest = 'RogueToolkit/RogueToolkit_Forever.toc'
+          $version = Select-String -LiteralPath $manifest -Pattern '^## Version: *([0-9]+\.[0-9]+\.[0-9]+)$'
+          if (-not $version -or $tag -cne ('v' + $version.Matches[0].Groups[1].Value)) {
+            throw "The version in $manifest must match tag $tag."
+          }
+
+          Compress-Archive -Path RogueToolkit -DestinationPath "RogueToolkit-$tag.zip"
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "RELEASE_TAG=$tag"
+
+      - name: Create release tag
+        if: github.ref_type == 'branch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh api --method GET "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --silent; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$GITHUB_SHA" --silent
+          fi
+
+          tag_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')
+          test "$tag_sha" = "$GITHUB_SHA"
+
+      - name: Publish ZIP on GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          archive="RogueToolkit-$RELEASE_TAG.zip"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$archive" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$archive" \
+              --verify-tag --title "Rogue Toolkit $RELEASE_TAG" --generate-notes
+          fi

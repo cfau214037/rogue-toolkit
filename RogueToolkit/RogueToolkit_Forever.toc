@@ -1,0 +1,11 @@
+## Interface: 16001
+## Game: forever
+## Title: Rogue Toolkit
+## IconTexture: Interface\AddOns\RogueToolkit\Textures\Logo
+## Version: 0.3.14
+## Author: Chris
+## Notes: One minimap launcher for rogue tools and settings.
+## OptionalDeps: PoisonSatchel, LockpickAtlas, ComboPointLedger
+## SavedVariables: RogueToolkitDB
+Launcher.lua
+Toolkit.lua
