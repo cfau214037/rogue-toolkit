@@ -134,7 +134,7 @@ modules[2] = {
 }
 modules[3] = {
     id = "ComboPointLedger", title = "Combo Point Ledger", get = ledger, height = 122,
-    icon = 132292,
+    icon = "Interface\\AddOns\\RogueToolkit\\Textures\\ComboPointLedger",
     menu = function(v, submenu) v.BuildMinimapMenu(submenu) end,
     launcher = function(v) return v.button end,
     settings = function(hud, v)
